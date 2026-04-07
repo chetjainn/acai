@@ -1,61 +1,40 @@
-import React from 'react';
-
 export default function LandingPage() {
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-gray-100">
       {/* Hero Section */}
-      <section className="bg-white">
-        <div className="max-w-6xl mx-auto px-5 py-24 flex flex-col items-center">
-          <h1 className="text-4xl font-bold text-gray-900 text-center">
-            Empower Your Solutions with AI Agents
-          </h1>
-          <p className="mt-4 text-lg text-gray-600 text-center max-w-xl">
-            Discover, integrate, and interact with AI agents tailored for your needs. Join the future of intelligent technology with ACAI Marketplace.
-          </p>
-          <div className="mt-6">
-            <a href="#get-started" className="px-6 py-2 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-              Get Started
+      <section className="relative w-full h-full bg-cover bg-center" style={{ backgroundImage: "url('/hero-image.jpg')" }}>
+        <div className="flex items-center justify-center h-full bg-black bg-opacity-50">
+          <div className="text-center text-white">
+            <h1 className="text-4xl md:text-6xl font-bold mb-4">Discover the Future of AI Agents</h1>
+            <p className="text-md md:text-lg mb-8">Explore, Compare, and Deploy AI Solutions Effortlessly</p>
+            <a href="#features" className="px-6 py-3 bg-blue-500 hover:bg-blue-600 rounded-md text-white font-semibold">
+              Learn More
             </a>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-16">
-        <div className="max-w-6xl mx-auto px-5">
-          <div className="flex flex-col md:flex-row md:space-x-8">
-            <div className="flex-1 mb-8 md:mb-0">
-              <h2 className="text-3xl font-bold text-gray-900">
-                Why Choose ACAI?
-              </h2>
-              <p className="mt-4 text-gray-600">
-                Our platform offers a diverse marketplace, robust features, and seamless integration, making it the ideal choice for innovators.
-              </p>
+      <section id="features" className="py-16">
+        <div className="container mx-auto px-8">
+          <h2 className="text-3xl font-semibold text-center mb-12">Exclusive Features</h2>
+          <div className="flex flex-wrap -mx-4">
+            <div className="w-full md:w-1/3 px-4 mb-8 md:mb-0">
+              <div className="p-6 bg-white shadow-md rounded-lg text-center">
+                <h3 className="text-xl font-semibold mb-4">Comprehensive Directory</h3>
+                <p>Quickly find agents suited to your needs from a vast library of AI solutions.</p>
+              </div>
             </div>
-            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="bg-white p-6 rounded-lg shadow-md">
-                <h3 className="font-semibold text-gray-800">Diverse Agent Solutions</h3>
-                <p className="text-gray-600 mt-2">
-                  Access a wide range of AI agents to solve complex problems across industries.
-                </p>
+            <div className="w-full md:w-1/3 px-4 mb-8 md:mb-0">
+              <div className="p-6 bg-white shadow-md rounded-lg text-center">
+                <h3 className="text-xl font-semibold mb-4">Seamless Deployment</h3>
+                <p>Deploy AI agents to your environment with just a few clicks, minimizing downtimes.</p>
               </div>
-              <div className="bg-white p-6 rounded-lg shadow-md">
-                <h3 className="font-semibold text-gray-800">Seamless Integration</h3>
-                <p className="text-gray-600 mt-2">
-                  Easily integrate AI agents with your existing workflows and systems.
-                </p>
-              </div>
-              <div className="bg-white p-6 rounded-lg shadow-md">
-                <h3 className="font-semibold text-gray-800">Scalable Infrastructure</h3>
-                <p className="text-gray-600 mt-2">
-                  Built on a robust infrastructure, ensuring reliability and scalability.
-                </p>
-              </div>
-              <div className="bg-white p-6 rounded-lg shadow-md">
-                <h3 className="font-semibold text-gray-800">Real-Time Interactions</h3>
-                <p className="text-gray-600 mt-2">
-                  Experience real-time interactions with AI agents for immediate insights.
-                </p>
+            </div>
+            <div className="w-full md:w-1/3 px-4">
+              <div className="p-6 bg-white shadow-md rounded-lg text-center">
+                <h3 className="text-xl font-semibold mb-4">Real-time Evaluation</h3>
+                <p>Get in-depth analytics and performance reports on the agents you use.</p>
               </div>
             </div>
           </div>
@@ -63,17 +42,13 @@ export default function LandingPage() {
       </section>
 
       {/* Call to Action Section */}
-      <section id="get-started" className="bg-blue-600 text-white py-16">
-        <div className="max-w-6xl mx-auto px-5 text-center">
-          <h2 className="text-3xl font-bold">Ready to Innovate?</h2>
-          <p className="mt-4 text-lg">
-            Join our community of forward-thinking innovators and start implementing AI solutions today.
-          </p>
-          <div className="mt-6">
-            <a href="/signup" className="px-8 py-3 font-semibold bg-white text-blue-600 rounded-lg hover:bg-gray-100">
-              Sign Up Now
-            </a>
-          </div>
+      <section className="bg-blue-600 py-16">
+        <div className="container mx-auto px-8 text-white text-center">
+          <h2 className="text-3xl font-semibold mb-4">Join the Revolution in AI</h2>
+          <p className="mb-8">Sign up now to start exploring the possibilities of AI agents.</p>
+          <a href="#signup" className="px-8 py-4 bg-white text-blue-600 rounded-md font-semibold">
+            Get Started
+          </a>
         </div>
       </section>
     </div>
