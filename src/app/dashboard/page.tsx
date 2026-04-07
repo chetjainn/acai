@@ -1,68 +1,62 @@
-import { useState } from 'react';
+import React from 'react';
+import Link from 'next/link';
 
-const Dashboard = () => {
-  const [data, setData] = useState([]);
-
+const Dashboard: React.FC = () => {
   return (
-    <div className="flex h-screen bg-gray-100">
-      <aside className="w-64 bg-white shadow-md">
-        <div className="p-5">
-          <h2 className="text-2xl font-bold text-center">ACAI</h2>
-        </div>
-        <nav className="mt-5">
+    <div className="flex h-screen">
+      <aside className="w-64 bg-gray-800 p-6 text-white">
+        <h2 className="text-2xl mb-4">ACAI Dashboard</h2>
+        <nav>
           <ul>
-            <li className="p-4 hover:bg-gray-200">Home</li>
-            <li className="p-4 hover:bg-gray-200">Agent Directory</li>
-            <li className="p-4 hover:bg-gray-200">Dashboard</li>
-            <li className="p-4 hover:bg-gray-200">Settings</li>
-            <li className="p-4 hover:bg-gray-200">Logout</li>
+            <li className="mb-2">
+              <Link href="/dashboard">
+                <a className="hover:text-gray-400">Home</a>
+              </Link>
+            </li>
+            <li className="mb-2">
+              <Link href="/agents">
+                <a className="hover:text-gray-400">Agents</a>
+              </Link>
+            </li>
+            <li className="mb-2">
+              <Link href="/settings">
+                <a className="hover:text-gray-400">Settings</a>
+              </Link>
+            </li>
+            <li>
+              <Link href="/support">
+                <a className="hover:text-gray-400">Support</a>
+              </Link>
+            </li>
           </ul>
         </nav>
       </aside>
-      <main className="flex-grow p-6">
-        <header className="mb-6">
-          <h1 className="text-3xl font-semibold">Dashboard</h1>
+      
+      <main className="flex-1 bg-gray-100 p-6">
+        <header className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Dashboard</h1>
         </header>
-        <div className="grid grid-cols-3 gap-6 mb-6">
-          <div className="bg-white p-5 rounded shadow">
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <div className="bg-white p-4 rounded-lg shadow">
             <h3 className="text-xl font-semibold">Total Agents</h3>
-            <p className="text-3xl">150</p>
+            <p className="text-2xl">150</p>
           </div>
-          <div className="bg-white p-5 rounded shadow">
+          <div className="bg-white p-4 rounded-lg shadow">
             <h3 className="text-xl font-semibold">Active Agents</h3>
-            <p className="text-3xl">120</p>
+            <p className="text-2xl">120</p>
           </div>
-          <div className="bg-white p-5 rounded shadow">
-            <h3 className="text-xl font-semibold">Pending Reviews</h3>
-            <p className="text-3xl">5</p>
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-xl font-semibold">Pending Requests</h3>
+            <p className="text-2xl">30</p>
           </div>
         </div>
-        <div className="bg-white rounded shadow">
-          <header className="p-4 border-b">
-            <h2 className="text-xl font-semibold">Agents Overview</h2>
-          </header>
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agent Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Performance</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {/* Placeholder for data rows */}
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap">John Doe</td>
-                <td className="px-6 py-4 whitespace-nowrap">Active</td>
-                <td className="px-6 py-4 whitespace-nowrap">High</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap">Jane Smith</td>
-                <td className="px-6 py-4 whitespace-nowrap">Pending</td>
-                <td className="px-6 py-4 whitespace-nowrap">Medium</td>
-              </tr>
-            </tbody>
-          </table>
+
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h2 className="text-2xl font-semibold mb-4">Agent Data Table</h2>
+          <div className="h-64 flex items-center justify-center">
+            <p className="text-gray-400">Data table is currently under construction.</p>
+          </div>
         </div>
       </main>
     </div>

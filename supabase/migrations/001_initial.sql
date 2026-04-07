@@ -1,113 +1,80 @@
-BEGIN;
-
--- Create table for User
-CREATE TABLE "User" (
-    "id" UUID PRIMARY KEY,
-    "external_id" VARCHAR(255) UNIQUE,
-    "email" VARCHAR(255) UNIQUE NOT NULL,
-    "username" VARCHAR(255) UNIQUE NOT NULL,
-    "display_name" VARCHAR(255),
-    "avatar_url" VARCHAR(255),
-    "role" VARCHAR(255) CHECK (role IN ('developer', 'consumer', 'admin')) DEFAULT 'consumer',
-    "stripe_customer_id" VARCHAR(255),
-    "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+-- Create tables for the ACAI Platform
+CREATE TABLE agent_listings (
+    agent_id UUID PRIMARY KEY,
+    name TEXT NOT NULL CHECK (char_length(name) > 0),
+    description TEXT NOT NULL CHECK (char_length(description) BETWEEN 10 AND 5000),
+    category TEXT NOT NULL,
+    capabilities TEXT[],
+    pricing_model TEXT CHECK (pricing_model IN ('free', 'subscription', 'pay_per_use', 'custom')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    owner_user_id UUID NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('draft', 'published', 'archived')),
+    quality_score FLOAT CHECK (quality_score BETWEEN 0 AND 1),
+    last_quality_check TIMESTAMPTZ
 );
 
--- Sample data for User
-INSERT INTO "User" 
-("id", "external_id", "email", "username", "display_name", "avatar_url", "role", "stripe_customer_id", "created_at", "updated_at") 
-VALUES 
-(uuid_generate_v4(), 'ext-123', 'johndoe@example.com', 'john_doe', 'John Doe', 'http://example.com/avatar.jpg', 'developer', NULL, NOW(), NOW());
-
--- Create table for Agent
-CREATE TABLE "Agent" (
-    "id" UUID PRIMARY KEY,
-    "slug" VARCHAR(255) UNIQUE NOT NULL,
-    "name" VARCHAR(255) NOT NULL,
-    "tagline" VARCHAR(255) NOT NULL,
-    "description" TEXT NOT NULL,
-    "full_description" TEXT,
-    "logo_url" VARCHAR(255),
-    "demo_video_url" VARCHAR(255),
-    "category" VARCHAR(255) CHECK (category IN ('productivity', 'creative', 'analytics', 'development', 'other')),
-    "pricing_model" VARCHAR(255) CHECK (pricing_model IN ('free', 'one_time', 'subscription')),
-    "price_cents" INTEGER CHECK(price_cents >= 0),
-    "is_public" BOOLEAN DEFAULT FALSE,
-    "is_verified" BOOLEAN DEFAULT FALSE,
-    "owner_id" UUID NOT NULL REFERENCES "User" ("id"),
-    "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+CREATE TABLE agent_reviews (
+    review_id UUID PRIMARY KEY,
+    agent_id UUID REFERENCES agent_listings(agent_id),
+    reviewer_user_id UUID NOT NULL,
+    rating INT CHECK (rating BETWEEN 1 AND 5),
+    review_text TEXT,
+    helpful_count INT DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    sentiment_score FLOAT CHECK (sentiment_score BETWEEN -1 AND 1),
+    is_verified_owner BOOLEAN DEFAULT FALSE
 );
 
--- Sample data for Agent
-INSERT INTO "Agent" 
-("id", "slug", "name", "tagline", "description", "category", "pricing_model", "price_cents", "is_public", "is_verified", "owner_id", "created_at", "updated_at") 
-VALUES 
-(uuid_generate_v4(), 'awesome-agent', 'Awesome AI', 'This agent does awesome things.', 'A more detailed description...', 'productivity', 'free', NULL, TRUE, TRUE, (SELECT "id" FROM "User" WHERE "username"='john_doe'), NOW(), NOW());
-
--- Create table for AgentVersion
-CREATE TABLE "AgentVersion" (
-    "id" UUID PRIMARY KEY,
-    "agent_id" UUID REFERENCES "Agent" ("id"),
-    "version" INTEGER NOT NULL,
-    "system_prompt" TEXT NOT NULL,
-    "config_json" JSONB,
-    "is_active" BOOLEAN DEFAULT FALSE,
-    "created_by" UUID REFERENCES "User" ("id"),
-    "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE ("agent_id", "version")
+CREATE TABLE user_events (
+    event_id UUID PRIMARY KEY,
+    session_id UUID NOT NULL,
+    user_id UUID,
+    event_type TEXT NOT NULL,
+    agent_id UUID,
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    properties JSON,
+    user_agent TEXT,
+    ip_hash TEXT
 );
 
--- Sample data for AgentVersion
-INSERT INTO "AgentVersion" 
-("id", "agent_id", "version", "system_prompt", "config_json", "is_active", "created_by", "created_at") 
-VALUES 
-(uuid_generate_v4(), (SELECT "id" FROM "Agent" WHERE "slug"='awesome-agent'), 1, 'Respond with enthusiasm.', '{"settings": "default"}', TRUE, (SELECT "id" FROM "User" WHERE "username"='john_doe'), NOW());
-
--- Create table for Subscription
-CREATE TABLE "Subscription" (
-    "id" UUID PRIMARY KEY,
-    "user_id" UUID REFERENCES "User" ("id"),
-    "agent_id" UUID REFERENCES "Agent" ("id"),
-    "stripe_subscription_id" VARCHAR(255) UNIQUE NOT NULL,
-    "status" VARCHAR(255) CHECK (status IN ('active', 'canceled', 'past_due', 'unpaid')),
-    "current_period_start" TIMESTAMPTZ NOT NULL,
-    "current_period_end" TIMESTAMPTZ NOT NULL,
-    "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+CREATE TABLE user_behavior_aggregated (
+    date DATE NOT NULL,
+    agent_id UUID NOT NULL,
+    total_views INT NOT NULL,
+    unique_viewers INT NOT NULL,
+    deploy_clicks INT NOT NULL,
+    conversion_rate FLOAT CHECK (conversion_rate BETWEEN 0 AND 1),
+    avg_session_duration FLOAT,
+    PRIMARY KEY (date, agent_id)
 );
 
--- Sample data for Subscription
-INSERT INTO "Subscription" 
-("id", "user_id", "agent_id", "stripe_subscription_id", "status", "current_period_start", "current_period_end", "created_at", "updated_at") 
+-- Create an index on user_events for quick lookup
+CREATE INDEX idx_user_events_session ON user_events (session_id);
+
+-- RLS Policies
+ALTER TABLE agent_listings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY user_can_write_agent ON agent_listings
+    FOR UPDATE, DELETE USING (owner_user_id = current_setting('myapp.user_id')::UUID);
+
+ALTER TABLE agent_reviews ENABLE ROW LEVEL SECURITY;
+CREATE POLICY user_can_write_review ON agent_reviews
+    FOR UPDATE, DELETE USING (reviewer_user_id = current_setting('myapp.user_id')::UUID);
+
+-- Insert sample data
+INSERT INTO agent_listings (agent_id, name, description, category, capabilities, pricing_model, created_at, updated_at, owner_user_id, status, quality_score, last_quality_check)
 VALUES 
-(uuid_generate_v4(), (SELECT "id" FROM "User" WHERE "username"='john_doe'), (SELECT "id" FROM "Agent" WHERE "slug"='awesome-agent'), 'sub_123456789', 'active', NOW(), NOW() + INTERVAL '30 days', NOW(), NOW());
+('11111111-1111-1111-1111-111111111111', 'AI Image Processor', 'Processes images using AI algorithms.', 'Image Processing', ARRAY['resizing', 'filtering'], 'subscription', NOW(), NOW(), '22222222-2222-2222-2222-222222222222', 'published', 0.95, NOW());
 
--- Create table for AgentInteraction
-CREATE TABLE "AgentInteraction" (
-    "id" UUID PRIMARY KEY,
-    "session_id" UUID NOT NULL,
-    "user_id" UUID REFERENCES "User" ("id"),
-    "agent_id" UUID REFERENCES "Agent" ("id"),
-    "agent_version_id" UUID REFERENCES "AgentVersion" ("id"),
-    "interaction_type" VARCHAR(255) CHECK (interaction_type IN ('view', 'run', 'like', 'share')),
-    "metadata" JSONB,
-    "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- Sample data for AgentInteraction
-INSERT INTO "AgentInteraction" 
-("id", "session_id", "user_id", "agent_id", "agent_version_id", "interaction_type", "metadata", "created_at") 
+INSERT INTO agent_reviews (review_id, agent_id, reviewer_user_id, rating, review_text, created_at, updated_at, sentiment_score, is_verified_owner)
 VALUES 
-(uuid_generate_v4(), uuid_generate_v4(), (SELECT "id" FROM "User" WHERE "username"='john_doe'), (SELECT "id" FROM "Agent" WHERE "slug"='awesome-agent'), (SELECT "id" FROM "AgentVersion" WHERE "agent_id"=(SELECT "id" FROM "Agent" WHERE "slug"='awesome-agent')), 'view', '{"response_time": 200}', NOW());
+('33333333-3333-3333-3333-333333333333', '11111111-1111-1111-1111-111111111111', '44444444-4444-4444-4444-444444444444', 5, 'This AI is fantastic!', NOW(), NOW(), 0.8, TRUE);
 
--- Example RLS Policy: Only allow users to see public agents
-CREATE POLICY agent_policy ON "Agent"
-    FOR SELECT
-    USING ("is_public" = TRUE);
+INSERT INTO user_events (event_id, session_id, user_id, event_type, agent_id, timestamp, properties, user_agent, ip_hash)
+VALUES 
+('55555555-5555-5555-5555-555555555555', '66666666-6666-6666-6666-666666666666', '44444444-4444-4444-4444-444444444444', 'view_listing', '11111111-1111-1111-1111-111111111111', NOW(), '{"detail":"viewed agent details"}', 'Mozilla/5.0', 'abcd1234');
 
--- Enable RLS on Agent table
-ALTER TABLE "Agent" ENABLE ROW LEVEL SECURITY;
-
-COMMIT;
+INSERT INTO user_behavior_aggregated (date, agent_id, total_views, unique_viewers, deploy_clicks, conversion_rate, avg_session_duration)
+VALUES 
+(CURRENT_DATE, '11111111-1111-1111-1111-111111111111', 100, 80, 10, 0.1, 120.5);
