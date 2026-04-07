@@ -1,102 +1,130 @@
--- Create the User table
-CREATE TABLE "User" (
-    user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    email VARCHAR UNIQUE NOT NULL,
-    hashed_password VARCHAR NOT NULL,
-    display_name VARCHAR,
-    avatar_url VARCHAR,
-    bio TEXT,
-    role VARCHAR DEFAULT 'user' CHECK (role IN ('user', 'admin')),
-    stripe_customer_id VARCHAR UNIQUE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+-- PostgreSQL Migration SQL File for ACAI Platform
+
+BEGIN;
+
+-- Create Users Table
+CREATE TABLE users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id TEXT NOT NULL DEFAULT 'ACAI',
+  email TEXT UNIQUE NOT NULL,
+  username TEXT UNIQUE,
+  full_name TEXT,
+  avatar_url TEXT,
+  role TEXT NOT NULL DEFAULT 'user', -- 'user', 'developer', 'admin'
+  stripe_customer_id TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  last_login_at TIMESTAMPTZ
 );
 
--- Create the Agent table
-CREATE TABLE "Agent" (
-    agent_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    creator_id UUID NOT NULL REFERENCES "User"(user_id),
-    name VARCHAR NOT NULL,
-    slug VARCHAR UNIQUE NOT NULL,
-    short_description VARCHAR NOT NULL,
-    long_description TEXT,
-    logo_url VARCHAR,
-    website_url VARCHAR,
-    documentation_url VARCHAR,
-    repository_url VARCHAR,
-    pricing_model VARCHAR DEFAULT 'free' CHECK (pricing_model IN ('free', 'one_time', 'subscription', 'usage_based')),
-    price_amount_cents INTEGER,
-    price_currency CHAR(3) DEFAULT 'USD',
-    is_verified BOOLEAN DEFAULT FALSE,
-    is_featured BOOLEAN DEFAULT FALSE,
-    is_public BOOLEAN DEFAULT TRUE,
-    total_deployments INTEGER DEFAULT 0,
-    average_rating DECIMAL(3,2) DEFAULT 0.00,
-    total_reviews INTEGER DEFAULT 0,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+-- Create Agents Table
+CREATE TABLE agents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id TEXT NOT NULL DEFAULT 'ACAI',
+  developer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  description TEXT,
+  short_description TEXT,
+  category TEXT NOT NULL, -- 'productivity', 'creative', 'analytics', etc.
+  tags TEXT[] DEFAULT '{}',
+  icon_url TEXT,
+  cover_image_url TEXT,
+  price_type TEXT NOT NULL DEFAULT 'free', -- 'free', 'one_time', 'subscription'
+  price_amount DECIMAL(10,2), -- NULL for free
+  price_currency TEXT DEFAULT 'USD',
+  stripe_price_id TEXT,
+  is_public BOOLEAN NOT NULL DEFAULT TRUE,
+  is_verified BOOLEAN NOT NULL DEFAULT FALSE,
+  configuration JSONB NOT NULL DEFAULT '{}', -- Agent system prompt, capabilities, etc.
+  usage_count INTEGER NOT NULL DEFAULT 0,
+  average_rating DECIMAL(3,2),
+  review_count INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  published_at TIMESTAMPTZ
 );
 
--- Create the Category table
-CREATE TABLE "Category" (
-    category_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR UNIQUE NOT NULL,
-    slug VARCHAR UNIQUE NOT NULL,
-    description TEXT,
-    icon VARCHAR,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+-- Create Transactions Table
+CREATE TABLE transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id TEXT NOT NULL DEFAULT 'ACAI',
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  agent_id UUID NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+  type TEXT NOT NULL, -- 'purchase', 'subscription', 'refund'
+  status TEXT NOT NULL DEFAULT 'pending', -- 'pending', 'completed', 'failed', 'refunded'
+  amount DECIMAL(10,2) NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'USD',
+  stripe_payment_intent_id TEXT UNIQUE,
+  stripe_subscription_id TEXT,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  completed_at TIMESTAMPTZ
 );
 
--- Create the AgentCategory junction table
-CREATE TABLE "AgentCategory" (
-    agent_id UUID NOT NULL REFERENCES "Agent"(agent_id),
-    category_id UUID NOT NULL REFERENCES "Category"(category_id),
-    assigned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    PRIMARY KEY (agent_id, category_id)
+-- Create User Agent Relationships Table
+CREATE TABLE user_agent_relationships (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id TEXT NOT NULL DEFAULT 'ACAI',
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  agent_id UUID NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+  relationship_type TEXT NOT NULL, -- 'purchased', 'favorited', 'subscribed'
+  status TEXT NOT NULL DEFAULT 'active',
+  expires_at TIMESTAMPTZ,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(user_id, agent_id, relationship_type)
 );
 
--- Create the Review table
-CREATE TABLE "Review" (
-    review_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    agent_id UUID NOT NULL REFERENCES "Agent"(agent_id),
-    author_id UUID NOT NULL REFERENCES "User"(user_id),
-    rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
-    title VARCHAR NOT NULL,
-    content TEXT,
-    is_verified_deployment BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (agent_id, author_id)
+-- Create Agent Reviews Table
+CREATE TABLE agent_reviews (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id TEXT NOT NULL DEFAULT 'ACAI',
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  agent_id UUID NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  title TEXT,
+  content TEXT,
+  is_verified_purchase BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(user_id, agent_id)
 );
 
--- Create the Deployment table
-CREATE TABLE "Deployment" (
-    deployment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    agent_id UUID NOT NULL REFERENCES "Agent"(agent_id),
-    user_id UUID NOT NULL REFERENCES "User"(user_id),
-    status VARCHAR DEFAULT 'active' CHECK (status IN ('active', 'paused', 'cancelled')),
-    deployed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    last_used_at TIMESTAMPTZ,
-    metadata JSONB
-);
+-- Sample Data Insertion
+INSERT INTO users (email, username, full_name, role) VALUES
+  ('jane.doe@example.com', 'janedoe', 'Jane Doe', 'developer'),
+  ('john.smith@example.com', 'johnsmith', 'John Smith', 'user');
 
--- Create sample data
-INSERT INTO "User" (email, hashed_password, display_name, created_at, updated_at) VALUES 
-('john.doe@example.com', 'hashed_password_123', 'John Doe', now(), now()),
-('jane.smith@example.com', 'hashed_password_456', 'Jane Smith', now(), now());
+INSERT INTO agents (developer_id, name, slug, category) VALUES
+  ((SELECT id FROM users WHERE username = 'janedoe'), 'Productivity Agent', 'productivity-agent', 'productivity'),
+  ((SELECT id FROM users WHERE username = 'janedoe'), 'Creative Agent', 'creative-agent', 'creative');
 
-INSERT INTO "Category" (name, slug, created_at) VALUES 
-('Customer Support', 'customer-support', now()),
-('Content Creation', 'content-creation', now());
+INSERT INTO transactions (user_id, agent_id, type, amount) VALUES
+  ((SELECT id FROM users WHERE username = 'johnsmith'), (SELECT id FROM agents WHERE slug = 'creative-agent'), 'purchase', 49.99);
 
--- Example RLS policy (for demonstration, usually involves more specific rules)
-CREATE POLICY user_isolation_policy ON "User"
-    USING (true);  -- Example, replace with actual policy requirements
+-- Create Indexes
+CREATE INDEX idx_agents_category ON agents (category);
+CREATE INDEX idx_transactions_user_id ON transactions (user_id);
+CREATE INDEX idx_relationships_user_id_agent_id ON user_agent_relationships (user_id, agent_id);
 
-CREATE POLICY agent_view_policy ON "Agent"
-    USING (is_public = TRUE OR EXISTS (
-        SELECT 1 FROM "Deployment" WHERE user_id = current_setting('request.jwt.claims.user_id')::uuid AND agent_id = "Agent".agent_id
-    ));  -- Allow viewing public agents or those the user has deployed
+-- Enable Row-Level Security
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_agent_relationships ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agent_reviews ENABLE ROW LEVEL SECURITY;
 
-ALTER TABLE "User" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "Agent" ENABLE ROW LEVEL SECURITY;
+-- Row-Level Security Policies
+CREATE POLICY users_tenant_access ON users USING (tenant_id = 'ACAI');
+CREATE POLICY agents_tenant_access ON agents USING (tenant_id = 'ACAI');
+CREATE POLICY transactions_tenant_access ON transactions USING (tenant_id = 'ACAI');
+CREATE POLICY relationships_tenant_access ON user_agent_relationships USING (tenant_id = 'ACAI');
+CREATE POLICY reviews_tenant_access ON agent_reviews USING (tenant_id = 'ACAI');
+
+-- Grant Select to Supabase Service Role
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO anon;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO authenticated;
+
+COMMIT;
