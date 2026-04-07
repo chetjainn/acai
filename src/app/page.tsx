@@ -1,63 +1,72 @@
-export default function LandingPage() {
+function LandingPage() {
   return (
-    <div className="bg-white">
+    <div className="min-h-screen bg-gray-100">
       {/* Hero Section */}
-      <section className="bg-blue-600 text-white py-20">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col items-center text-center">
-          <h1 className="text-5xl font-bold mb-4">Welcome to ACAI</h1>
-          <p className="text-xl mb-6">
-            Your one-stop marketplace for AI agents, where innovation meets ease.
+      <section className="bg-gradient-to-r from-blue-500 to-teal-500 text-white py-20">
+        <div className="container mx-auto px-6 text-center">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">
+            Accelerate AI Adoption with ACAI
+          </h1>
+          <p className="mb-6 text-lg md:text-xl">
+            Discover, compare, and deploy AI agents effortlessly.
           </p>
-          <button className="bg-white text-blue-600 py-3 px-6 rounded-lg shadow-lg font-medium">
+          <a
+            href="#features"
+            className="bg-white text-blue-500 font-semibold px-6 py-3 rounded-lg shadow-md hover:bg-blue-50 transition"
+          >
             Explore Now
-          </button>
+          </a>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-6">
-          <h2 className="text-3xl font-bold text-center text-blue-600 mb-12">
-            Features
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="text-2xl font-bold mb-4">AI Agent Directory</h3>
+      <section id="features" className="py-16 bg-white">
+        <div className="container mx-auto px-6">
+          <h2 className="text-3xl font-bold text-center mb-6">Platform Features</h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="bg-gray-50 p-6 rounded-lg shadow-md">
+              <h3 className="text-2xl font-semibold mb-2">Discover AI Agents</h3>
               <p>
-                Explore a wide variety of AI agents designed to simplify your
-                workflows and improve efficiency.
+                Browse a curated marketplace of AI-driven solutions tailored to
+                your needs.
               </p>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="text-2xl font-bold mb-4">User Dashboard</h3>
+            <div className="bg-gray-50 p-6 rounded-lg shadow-md">
+              <h3 className="text-2xl font-semibold mb-2">Comprehensive Comparisons</h3>
               <p>
-                Manage your preferences and AI agents effortlessly from a
-                centralized and intuitive dashboard.
+                Easily compare agents to find the perfect fit with detailed
+                breakdowns.
               </p>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="text-2xl font-bold mb-4">Secure & Scalable</h3>
+            <div className="bg-gray-50 p-6 rounded-lg shadow-md">
+              <h3 className="text-2xl font-semibold mb-2">Seamless Deployment</h3>
               <p>
-                Built with Next.js and Supabase, ensuring security and
-                scalability for all your AI needs.
+                Simplify integration and deployment with step-by-step
+                instructions and support.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Call to Action Section */}
-      <section className="bg-blue-600 text-white py-20">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col items-center text-center">
-          <h2 className="text-3xl font-bold mb-4">Get Started with ACAI Today</h2>
-          <p className="text-xl mb-6">
-            Join our platform and revolutionize the way you interact with AI.
+      {/* CTA Section */}
+      <section className="bg-blue-500 text-white py-16">
+        <div className="container mx-auto px-6 text-center">
+          <h2 className="text-4xl font-bold mb-3">Get Started with ACAI Today</h2>
+          <p className="mb-6 text-lg">
+            Sign up now to begin your journey in exploring and deploying the
+            most advanced AI agents.
           </p>
-          <button className="bg-white text-blue-600 py-3 px-6 rounded-lg shadow-lg font-medium">
-            Sign Up Now
-          </button>
+          <a
+            href="/signup"
+            className="bg-white text-blue-500 font-bold px-8 py-4 rounded-lg shadow-lg hover:bg-blue-50 transition"
+          >
+            Sign Up
+          </a>
         </div>
       </section>
     </div>
   );
 }
+
+export default LandingPage;

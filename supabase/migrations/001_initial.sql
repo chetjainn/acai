@@ -1,130 +1,65 @@
--- PostgreSQL Migration SQL File for ACAI Platform
+-- Create tables for the ACAI platform
 
-BEGIN;
-
--- Create Users Table
-CREATE TABLE users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id TEXT NOT NULL DEFAULT 'ACAI',
-  email TEXT UNIQUE NOT NULL,
-  username TEXT UNIQUE,
-  full_name TEXT,
-  avatar_url TEXT,
-  role TEXT NOT NULL DEFAULT 'user', -- 'user', 'developer', 'admin'
-  stripe_customer_id TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  last_login_at TIMESTAMPTZ
+CREATE TABLE IF NOT EXISTS Agent_Dim (
+    agent_sk SERIAL PRIMARY KEY,
+    agent_id UUID UNIQUE NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL,
+    developer VARCHAR(255),
+    primary_category VARCHAR(255),
+    tags TEXT[],
+    model_info VARCHAR(255),
+    capabilities_array TEXT[],
+    pricing_tier VARCHAR(50),
+    is_active BOOLEAN DEFAULT TRUE,
+    valid_from TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    valid_to TIMESTAMP NOT NULL DEFAULT '9999-12-31',
+    current_flag BOOLEAN DEFAULT TRUE
 );
 
--- Create Agents Table
-CREATE TABLE agents (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id TEXT NOT NULL DEFAULT 'ACAI',
-  developer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  slug TEXT UNIQUE NOT NULL,
-  description TEXT,
-  short_description TEXT,
-  category TEXT NOT NULL, -- 'productivity', 'creative', 'analytics', etc.
-  tags TEXT[] DEFAULT '{}',
-  icon_url TEXT,
-  cover_image_url TEXT,
-  price_type TEXT NOT NULL DEFAULT 'free', -- 'free', 'one_time', 'subscription'
-  price_amount DECIMAL(10,2), -- NULL for free
-  price_currency TEXT DEFAULT 'USD',
-  stripe_price_id TEXT,
-  is_public BOOLEAN NOT NULL DEFAULT TRUE,
-  is_verified BOOLEAN NOT NULL DEFAULT FALSE,
-  configuration JSONB NOT NULL DEFAULT '{}', -- Agent system prompt, capabilities, etc.
-  usage_count INTEGER NOT NULL DEFAULT 0,
-  average_rating DECIMAL(3,2),
-  review_count INTEGER NOT NULL DEFAULT 0,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  published_at TIMESTAMPTZ
+CREATE TABLE IF NOT EXISTS Agent_Interaction_Fact (
+    interaction_sk SERIAL PRIMARY KEY,
+    date_sk INT NOT NULL,
+    agent_sk INT NOT NULL REFERENCES Agent_Dim(agent_sk),
+    user_sk INT,
+    event_type VARCHAR(50) NOT NULL,
+    session_id VARCHAR(255),
+    event_count INT DEFAULT 1,
+    properties JSON,
+    event_timestamp TIMESTAMP NOT NULL
 );
 
--- Create Transactions Table
-CREATE TABLE transactions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id TEXT NOT NULL DEFAULT 'ACAI',
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  agent_id UUID NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
-  type TEXT NOT NULL, -- 'purchase', 'subscription', 'refund'
-  status TEXT NOT NULL DEFAULT 'pending', -- 'pending', 'completed', 'failed', 'refunded'
-  amount DECIMAL(10,2) NOT NULL,
-  currency TEXT NOT NULL DEFAULT 'USD',
-  stripe_payment_intent_id TEXT UNIQUE,
-  stripe_subscription_id TEXT,
-  metadata JSONB DEFAULT '{}',
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  completed_at TIMESTAMPTZ
-);
+-- Add indexes for optimized query performance
+CREATE INDEX ON Agent_Dim(agent_id);
+CREATE INDEX ON Agent_Interaction_Fact(agent_sk);
+CREATE INDEX ON Agent_Interaction_Fact(event_timestamp);
 
--- Create User Agent Relationships Table
-CREATE TABLE user_agent_relationships (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id TEXT NOT NULL DEFAULT 'ACAI',
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  agent_id UUID NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
-  relationship_type TEXT NOT NULL, -- 'purchased', 'favorited', 'subscribed'
-  status TEXT NOT NULL DEFAULT 'active',
-  expires_at TIMESTAMPTZ,
-  metadata JSONB DEFAULT '{}',
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE(user_id, agent_id, relationship_type)
-);
+-- Sample data for Agent_Dim
+INSERT INTO Agent_Dim (agent_id, name, description, developer, primary_category, tags, model_info, capabilities_array, pricing_tier) VALUES
+('123e4567-e89b-12d3-a456-426614174000', 'ChatGPT', 'AI chatbot', 'OpenAI', 'Natural Language Processing', ARRAY['NLP', 'Chatbot'], 'OpenAI:ChatGPT', ARRAY['Conversational AI'], 'premium'),
+('123e4567-e89b-12d3-a456-426614174001', 'Vision AI', 'Image recognition AI', 'Google', 'Computer Vision', ARRAY['CV', 'Image recognition'], 'Google:VisionAI', ARRAY['Image processing'], 'standard');
 
--- Create Agent Reviews Table
-CREATE TABLE agent_reviews (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id TEXT NOT NULL DEFAULT 'ACAI',
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  agent_id UUID NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
-  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
-  title TEXT,
-  content TEXT,
-  is_verified_purchase BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE(user_id, agent_id)
-);
+-- Sample data for Agent_Interaction_Fact
+INSERT INTO Agent_Interaction_Fact (date_sk, agent_sk, event_type, session_id, properties, event_timestamp) VALUES
+(20231001, 1, 'view', 'sess123', '{"compare_with": ["123e4567-e89b-12d3-a456-426614174001"]}'::json, '2023-10-01 12:00:00'),
+(20231001, 2, 'compare', 'sess124', '{"compare_with": ["123e4567-e89b-12d3-a456-426614174000"]}'::json, '2023-10-01 12:05:00');
 
--- Sample Data Insertion
-INSERT INTO users (email, username, full_name, role) VALUES
-  ('jane.doe@example.com', 'janedoe', 'Jane Doe', 'developer'),
-  ('john.smith@example.com', 'johnsmith', 'John Smith', 'user');
+-- RLS policies setup
 
-INSERT INTO agents (developer_id, name, slug, category) VALUES
-  ((SELECT id FROM users WHERE username = 'janedoe'), 'Productivity Agent', 'productivity-agent', 'productivity'),
-  ((SELECT id FROM users WHERE username = 'janedoe'), 'Creative Agent', 'creative-agent', 'creative');
+-- Enable RLS
+ALTER TABLE Agent_Dim ENABLE ROW LEVEL SECURITY;
+ALTER TABLE Agent_Interaction_Fact ENABLE ROW LEVEL SECURITY;
 
-INSERT INTO transactions (user_id, agent_id, type, amount) VALUES
-  ((SELECT id FROM users WHERE username = 'johnsmith'), (SELECT id FROM agents WHERE slug = 'creative-agent'), 'purchase', 49.99);
+-- Create a policy for public access to public agents only
+CREATE POLICY public_agents ON Agent_Dim
+    FOR SELECT
+    USING (is_active AND current_flag);
 
--- Create Indexes
-CREATE INDEX idx_agents_category ON agents (category);
-CREATE INDEX idx_transactions_user_id ON transactions (user_id);
-CREATE INDEX idx_relationships_user_id_agent_id ON user_agent_relationships (user_id, agent_id);
+-- Create a policy allowing access to interactions based on user roles or criteria
+CREATE POLICY interaction_data_access ON Agent_Interaction_Fact
+    FOR SELECT
+    USING (EXISTS (SELECT 1 FROM Agent_Dim WHERE Agent_Dim.agent_sk = Agent_Interaction_Fact.agent_sk AND is_active));
 
--- Enable Row-Level Security
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE agents ENABLE ROW LEVEL SECURITY;
-ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE user_agent_relationships ENABLE ROW LEVEL SECURITY;
-ALTER TABLE agent_reviews ENABLE ROW LEVEL SECURITY;
-
--- Row-Level Security Policies
-CREATE POLICY users_tenant_access ON users USING (tenant_id = 'ACAI');
-CREATE POLICY agents_tenant_access ON agents USING (tenant_id = 'ACAI');
-CREATE POLICY transactions_tenant_access ON transactions USING (tenant_id = 'ACAI');
-CREATE POLICY relationships_tenant_access ON user_agent_relationships USING (tenant_id = 'ACAI');
-CREATE POLICY reviews_tenant_access ON agent_reviews USING (tenant_id = 'ACAI');
-
--- Grant Select to Supabase Service Role
-GRANT SELECT ON ALL TABLES IN SCHEMA public TO anon;
-GRANT SELECT ON ALL TABLES IN SCHEMA public TO authenticated;
-
-COMMIT;
+-- Grant SELECT permissions to specific roles
+GRANT SELECT ON Agent_Dim TO PUBLIC;
+GRANT SELECT ON Agent_Interaction_Fact TO COMPASS_user, FORGE_user;
