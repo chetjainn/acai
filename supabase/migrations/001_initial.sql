@@ -1,99 +1,129 @@
--- Migration for ACAI Platform Database
+-- PostgreSQL migration script for the ACAI platform
 
--- Enable necessary extensions
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- User Management
+-- Create Users table
 CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE NOT NULL,
-    name VARCHAR(100),
-    role VARCHAR(20) CHECK (role IN ('user', 'provider', 'admin')),
+    password_hash VARCHAR(255) NOT NULL,
+    username VARCHAR(50) UNIQUE,
+    full_name VARCHAR(100),
+    avatar_url TEXT,
+    bio TEXT,
+    role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'developer', 'admin')),
+    email_verified BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ,
-    profile JSONB
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Agent Marketplace
-CREATE TABLE agents (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(255) NOT NULL,
+-- Create Categories table
+CREATE TABLE categories (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(50) UNIQUE NOT NULL,
+    slug VARCHAR(50) UNIQUE NOT NULL,
     description TEXT,
-    category VARCHAR(50) CHECK (category IN ('productivity', 'creative', 'analytics', 'customer_service', 'development')),
-    provider_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    pricing_model VARCHAR(20) CHECK (pricing_model IN ('free', 'one_time', 'subscription', 'usage_based')),
-    price DECIMAL,
-    deployment_type VARCHAR(30) CHECK (deployment_type IN ('api', 'webhook', 'chat_interface', 'embedded')),
-    capabilities JSONB,
-    technical_requirements JSONB,
-    rating DECIMAL CHECK (rating BETWEEN 0 AND 5),
-    review_count INTEGER DEFAULT 0,
-    is_verified BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Create Agents table
+CREATE TABLE agents (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) NOT NULL,
+    slug VARCHAR(100) UNIQUE NOT NULL,
+    description TEXT NOT NULL,
+    short_description VARCHAR(255),
+    creator_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    price DECIMAL(10, 2) NOT NULL CHECK (price >= 0),
+    price_model VARCHAR(20) DEFAULT 'one_time' CHECK (price_model IN ('one_time', 'subscription', 'usage_based')),
+    is_public BOOLEAN DEFAULT TRUE,
     is_featured BOOLEAN DEFAULT FALSE,
+    configuration_schema JSONB,
+    api_endpoint TEXT,
+    icon_url TEXT,
+    cover_image_url TEXT,
+    total_purchases INTEGER DEFAULT 0,
+    average_rating DECIMAL(3, 2) DEFAULT 0 CHECK (average_rating >= 0 AND average_rating <= 5),
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ,
-    metadata JSONB
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_agents_category ON agents(category);
-CREATE INDEX idx_agents_pricing_model ON agents(pricing_model);
-
--- Agent Versions
-CREATE TABLE agent_versions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    agent_id UUID REFERENCES agents(id) ON DELETE CASCADE,
-    version VARCHAR(50),
-    changelog TEXT,
-    deployment_config JSONB,
-    is_active BOOLEAN DEFAULT FALSE,
-    released_at TIMESTAMPTZ
+-- Create Junction table for Agent-Category relationship
+CREATE TABLE agent_categories (
+    agent_id UUID NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+    category_id UUID NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
+    PRIMARY KEY (agent_id, category_id)
 );
 
--- Deployments
-CREATE TABLE deployments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    agent_id UUID REFERENCES agents(id) ON DELETE CASCADE,
-    agent_version_id UUID REFERENCES agent_versions(id),
-    status VARCHAR(20) CHECK (status IN ('active', 'paused', 'terminated')),
-    config JSONB,
+-- Create Transactions table
+CREATE TABLE transactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    agent_id UUID NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+    amount DECIMAL(10, 2) NOT NULL CHECK (amount >= 0),
+    currency VARCHAR(3) DEFAULT 'USD',
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'failed', 'refunded')),
+    payment_provider VARCHAR(50),
+    payment_intent_id TEXT,
+    metadata JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    last_used_at TIMESTAMPTZ
+    completed_at TIMESTAMPTZ
 );
 
--- Reviews
+-- Create Reviews table
 CREATE TABLE reviews (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    agent_id UUID REFERENCES agents(id) ON DELETE CASCADE,
-    rating INTEGER CHECK (rating BETWEEN 1 AND 5),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    agent_id UUID NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+    rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
     comment TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, agent_id)
 );
 
--- Comparison Sessions
-CREATE TABLE comparison_sessions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id),
-    session_token VARCHAR(255),
-    agent_ids UUID[] NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    last_accessed_at TIMESTAMPTZ
-);
+-- Create indexes for performance
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_created_at ON users(created_at);
 
--- Row Level Security Policies
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-CREATE POLICY user_is_self ON users USING (email = current_setting('jwt.claims.email'));
+CREATE INDEX idx_agents_creator_id ON agents(creator_id);
+CREATE INDEX idx_agents_is_public ON agents(is_public) WHERE is_public = TRUE;
+CREATE INDEX idx_agents_is_featured ON agents(is_featured) WHERE is_featured = TRUE;
+CREATE INDEX idx_agents_price ON agents(price);
+CREATE INDEX idx_agents_average_rating ON agents(average_rating DESC);
+CREATE INDEX idx_agents_total_purchases ON agents(total_purchases DESC);
+CREATE INDEX idx_agents_created_at ON agents(created_at DESC);
 
-ALTER TABLE agents ENABLE ROW LEVEL SECURITY;
+CREATE INDEX idx_categories_slug ON categories(slug);
 
--- Sample Data
-INSERT INTO users (email, name, role) VALUES
-('user1@example.com', 'User One', 'user'),
-('provider1@example.com', 'Provider One', 'provider'),
-('admin@example.com', 'Administrator', 'admin');
+CREATE INDEX idx_agent_categories_category_id ON agent_categories(category_id);
 
-INSERT INTO agents (name, description, category, provider_id, pricing_model, price, deployment_type, capabilities, rating, review_count, is_verified, is_featured) VALUES
-('Agent A', 'Productivity enhancing agent', 'productivity', (SELECT id FROM users WHERE email='provider1@example.com'), 'subscription', 19.99, 'api', '["task automation", "email integration"]', 4.5, 10, TRUE, TRUE),
-('Agent B', 'Creative agent for graphic design', 'creative', (SELECT id FROM users WHERE email='provider1@example.com'), 'free', NULL, 'webhook', '["design suggestions", "color palettes"]', 4.0, 25, TRUE, FALSE);
+CREATE INDEX idx_transactions_user_id ON transactions(user_id);
+CREATE INDEX idx_transactions_agent_id ON transactions(agent_id);
+CREATE INDEX idx_transactions_status_created ON transactions(status, created_at DESC);
+
+CREATE INDEX idx_reviews_agent_id ON reviews(agent_id);
+CREATE INDEX idx_reviews_user_id ON reviews(user_id);
+
+-- Sample data insertion
+INSERT INTO users (email, password_hash, username, full_name, role, email_verified) VALUES
+('john.doe@example.com', 'hashedPassword1', 'johndoe', 'John Doe', 'developer', TRUE),
+('jane.smith@example.com', 'hashedPassword2', 'janesmith', 'Jane Smith', 'user', TRUE);
+
+INSERT INTO categories (name, slug, description) VALUES
+('Machine Learning', 'machine-learning', 'AI agents related to machine learning'),
+('Data Science', 'data-science', 'AI agents related to data science');
+
+INSERT INTO agents (name, slug, description, creator_id, price, price_model, is_public, is_featured, total_purchases, average_rating) VALUES
+('Smart AI Assistant', 'smart-ai-assistant', 'An AI assistant to help with daily tasks.', (SELECT id FROM users WHERE username = 'johndoe'), 49.99, 'one_time', TRUE, FALSE, 100, 4.5),
+('Data Analyzer', 'data-analyzer', 'An AI agent for analyzing data and statistics.', (SELECT id FROM users WHERE username = 'janesmith'), 29.99, 'subscription', TRUE, TRUE, 150, 4.7);
+
+INSERT INTO agent_categories (agent_id, category_id) VALUES
+((SELECT id FROM agents WHERE slug = 'smart-ai-assistant'), (SELECT id FROM categories WHERE slug = 'machine-learning')),
+((SELECT id FROM agents WHERE slug = 'data-analyzer'), (SELECT id FROM categories WHERE slug = 'data-science'));
+
+INSERT INTO transactions (user_id, agent_id, amount, currency, status, payment_provider, payment_intent_id) VALUES
+((SELECT id FROM users WHERE username = 'johndoe'), (SELECT id FROM agents WHERE slug = 'data-analyzer'), 29.99, 'USD', 'completed', 'stripe', 'pi_1'),
+((SELECT id FROM users WHERE username = 'janesmith'), (SELECT id FROM agents WHERE slug = 'smart-ai-assistant'), 49.99, 'USD', 'completed', 'paypal', 'pi_2');
+
+INSERT INTO reviews (user_id, agent_id, rating, comment) VALUES
+((SELECT id FROM users WHERE username = 'johndoe'), (SELECT id FROM agents WHERE slug = 'data-analyzer'), 5, 'Amazing agent, very helpful!'),
+((SELECT id FROM users WHERE username = 'janesmith'), (SELECT id FROM agents WHERE slug = 'smart-ai-assistant'), 4, 'Great features and easy to use.');
