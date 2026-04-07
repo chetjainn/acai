@@ -1,73 +1,69 @@
-import React from 'react';
+import { useState } from 'react';
 
 const Dashboard = () => {
+  const [data, setData] = useState([]);
+
   return (
-    <div className="flex">
-      <aside className="w-64 h-screen bg-gray-800 text-white p-4">
-        <h2 className="text-xl font-bold mb-6">ACAI Dashboard</h2>
-        <nav>
+    <div className="flex h-screen bg-gray-100">
+      <aside className="w-64 bg-white shadow-md">
+        <div className="p-5">
+          <h2 className="text-2xl font-bold text-center">ACAI</h2>
+        </div>
+        <nav className="mt-5">
           <ul>
-            <li className="mb-4">
-              <a href="#" className="hover:text-gray-400">Home</a>
-            </li>
-            <li className="mb-4">
-              <a href="#" className="hover:text-gray-400">Agents</a>
-            </li>
-            <li className="mb-4">
-              <a href="#" className="hover:text-gray-400">Marketplace</a>
-            </li>
-            <li className="mb-4">
-              <a href="#" className="hover:text-gray-400">Settings</a>
-            </li>
+            <li className="p-4 hover:bg-gray-200">Home</li>
+            <li className="p-4 hover:bg-gray-200">Agent Directory</li>
+            <li className="p-4 hover:bg-gray-200">Dashboard</li>
+            <li className="p-4 hover:bg-gray-200">Settings</li>
+            <li className="p-4 hover:bg-gray-200">Logout</li>
           </ul>
         </nav>
       </aside>
-      <main className="flex-1 p-6 bg-gray-100">
+      <main className="flex-grow p-6">
         <header className="mb-6">
-          <h1 className="text-3xl font-semibold">Welcome to ACAI</h1>
+          <h1 className="text-3xl font-semibold">Dashboard</h1>
         </header>
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white shadow rounded p-4 text-center">
-            <h2 className="text-lg font-semibold">Total Agents</h2>
-            <p className="text-2xl font-bold">150</p>
+        <div className="grid grid-cols-3 gap-6 mb-6">
+          <div className="bg-white p-5 rounded shadow">
+            <h3 className="text-xl font-semibold">Total Agents</h3>
+            <p className="text-3xl">150</p>
           </div>
-          <div className="bg-white shadow rounded p-4 text-center">
-            <h2 className="text-lg font-semibold">Active Agents</h2>
-            <p className="text-2xl font-bold">85</p>
+          <div className="bg-white p-5 rounded shadow">
+            <h3 className="text-xl font-semibold">Active Agents</h3>
+            <p className="text-3xl">120</p>
           </div>
-          <div className="bg-white shadow rounded p-4 text-center">
-            <h2 className="text-lg font-semibold">Pending Deployments</h2>
-            <p className="text-2xl font-bold">5</p>
+          <div className="bg-white p-5 rounded shadow">
+            <h3 className="text-xl font-semibold">Pending Reviews</h3>
+            <p className="text-3xl">5</p>
           </div>
-        </section>
-        <section className="bg-white shadow rounded p-6">
-          <h2 className="text-xl font-semibold mb-4">Agents Overview</h2>
-          <table className="min-w-full border-collapse">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left p-2">Agent Name</th>
-                <th className="text-left p-2">Status</th>
-                <th className="text-left p-2">Actions</th>
+        </div>
+        <div className="bg-white rounded shadow">
+          <header className="p-4 border-b">
+            <h2 className="text-xl font-semibold">Agents Overview</h2>
+          </header>
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agent Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Performance</th>
               </tr>
             </thead>
-            <tbody>
-              <tr className="border-b">
-                <td className="p-2">Agent Alpha</td>
-                <td className="p-2">Active</td>
-                <td className="p-2">
-                  <button className="text-blue-500">View</button>
-                </td>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {/* Placeholder for data rows */}
+              <tr>
+                <td className="px-6 py-4 whitespace-nowrap">John Doe</td>
+                <td className="px-6 py-4 whitespace-nowrap">Active</td>
+                <td className="px-6 py-4 whitespace-nowrap">High</td>
               </tr>
-              <tr className="border-b">
-                <td className="p-2">Agent Beta</td>
-                <td className="p-2">Inactive</td>
-                <td className="p-2">
-                  <button className="text-blue-500">View</button>
-                </td>
+              <tr>
+                <td className="px-6 py-4 whitespace-nowrap">Jane Smith</td>
+                <td className="px-6 py-4 whitespace-nowrap">Pending</td>
+                <td className="px-6 py-4 whitespace-nowrap">Medium</td>
               </tr>
             </tbody>
           </table>
-        </section>
+        </div>
       </main>
     </div>
   );
