@@ -1,20 +1,19 @@
+import React from 'react';
+
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="bg-gray-50 min-h-screen">
       {/* Hero Section */}
-      <section className="bg-blue-600 text-white py-20">
-        <div className="container mx-auto text-center">
-          <h1 className="text-4xl md:text-6xl font-bold">
-            Welcome to ACAI - Your AI Agents Marketplace
+      <section className="bg-white">
+        <div className="max-w-6xl mx-auto px-5 py-24 flex flex-col items-center">
+          <h1 className="text-4xl font-bold text-gray-900 text-center">
+            Empower Your Solutions with AI Agents
           </h1>
-          <p className="mt-5 text-lg md:text-xl">
-            Discover, compare, and deploy AI agents effortlessly.
+          <p className="mt-4 text-lg text-gray-600 text-center max-w-xl">
+            Discover, integrate, and interact with AI agents tailored for your needs. Join the future of intelligent technology with ACAI Marketplace.
           </p>
-          <div className="mt-8">
-            <a
-              href="#"
-              className="inline-block bg-white text-blue-600 px-8 py-3 rounded-full font-semibold hover:text-blue-700"
-            >
+          <div className="mt-6">
+            <a href="#get-started" className="px-6 py-2 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700">
               Get Started
             </a>
           </div>
@@ -23,87 +22,39 @@ export default function LandingPage() {
 
       {/* Features Section */}
       <section className="py-16">
-        <div className="container mx-auto px-6 md:px-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-800">
-            Why Choose ACAI?
-          </h2>
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="bg-white shadow-md rounded-lg p-6">
-                <div className="mb-4">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-12 w-12 mx-auto text-blue-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M12 8c1.104 0 2 .896 2 2s-.896 2-2 2-2-.896-2-2 .896-2 2-2zm0 4c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1zm6-9a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V5a2 2 0 012-2h12zm0 2H6v14h12V5z"
-                    />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-800">
-                  Vast Agent Library
-                </h3>
-                <p className="mt-2 text-gray-600">
-                  Access a diverse collection of AI agents ready to be deployed
-                  for your projects.
+        <div className="max-w-6xl mx-auto px-5">
+          <div className="flex flex-col md:flex-row md:space-x-8">
+            <div className="flex-1 mb-8 md:mb-0">
+              <h2 className="text-3xl font-bold text-gray-900">
+                Why Choose ACAI?
+              </h2>
+              <p className="mt-4 text-gray-600">
+                Our platform offers a diverse marketplace, robust features, and seamless integration, making it the ideal choice for innovators.
+              </p>
+            </div>
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <h3 className="font-semibold text-gray-800">Diverse Agent Solutions</h3>
+                <p className="text-gray-600 mt-2">
+                  Access a wide range of AI agents to solve complex problems across industries.
                 </p>
               </div>
-            </div>
-            <div className="text-center">
-              <div className="bg-white shadow-md rounded-lg p-6">
-                <div className="mb-4">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-12 w-12 mx-auto text-blue-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M3 7h5V4h8v3h5M4 11V7h16v4M4 11l-.4 1.634a2 2 0 001.58 2.324L8 16l2 3h4l2-3 2.82-.326a2 2 0 001.18-.788L20 11z"
-                    />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-800">
-                  Easy Deployment
-                </h3>
-                <p className="mt-2 text-gray-600">
-                  Deploy AI agents with just a few clicks, no hassle required.
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <h3 className="font-semibold text-gray-800">Seamless Integration</h3>
+                <p className="text-gray-600 mt-2">
+                  Easily integrate AI agents with your existing workflows and systems.
                 </p>
               </div>
-            </div>
-            <div className="text-center">
-              <div className="bg-white shadow-md rounded-lg p-6">
-                <div className="mb-4">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-12 w-12 mx-auto text-blue-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M12 8c1.104 0 2 .896 2 2s-.896 2-2 2-2-.896-2-2 .896-2 2-2zM6 8a6 6 0 1111.84 1.158C17.666 10.448 17 13.372 17 16c0 1.105.895 2 2 2s2-.895 2-2c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 1.105.895 2 2 2s2-.895 2-2c0-6.627 5.373-12 12-12z"
-                    />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-800">
-                  Seamless Integration
-                </h3>
-                <p className="mt-2 text-gray-600">
-                  Easily integrate agents into your existing workflows.
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <h3 className="font-semibold text-gray-800">Scalable Infrastructure</h3>
+                <p className="text-gray-600 mt-2">
+                  Built on a robust infrastructure, ensuring reliability and scalability.
+                </p>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <h3 className="font-semibold text-gray-800">Real-Time Interactions</h3>
+                <p className="text-gray-600 mt-2">
+                  Experience real-time interactions with AI agents for immediate insights.
                 </p>
               </div>
             </div>
@@ -111,20 +62,15 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="bg-blue-600 text-white py-20">
-        <div className="container mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold">
-            Ready to Transform Your Business with AI?
-          </h2>
-          <p className="mt-4 text-lg md:text-xl">
-            Join ACAI today and start leveraging the power of AI agents.
+      {/* Call to Action Section */}
+      <section id="get-started" className="bg-blue-600 text-white py-16">
+        <div className="max-w-6xl mx-auto px-5 text-center">
+          <h2 className="text-3xl font-bold">Ready to Innovate?</h2>
+          <p className="mt-4 text-lg">
+            Join our community of forward-thinking innovators and start implementing AI solutions today.
           </p>
-          <div className="mt-8">
-            <a
-              href="#"
-              className="inline-block bg-white text-blue-600 px-8 py-3 rounded-full font-semibold hover:text-blue-700"
-            >
+          <div className="mt-6">
+            <a href="/signup" className="px-8 py-3 font-semibold bg-white text-blue-600 rounded-lg hover:bg-gray-100">
               Sign Up Now
             </a>
           </div>

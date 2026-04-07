@@ -1,80 +1,117 @@
--- Create tables for the ACAI Platform
-CREATE TABLE agent_listings (
-    agent_id UUID PRIMARY KEY,
-    name TEXT NOT NULL CHECK (char_length(name) > 0),
-    description TEXT NOT NULL CHECK (char_length(description) BETWEEN 10 AND 5000),
-    category TEXT NOT NULL,
-    capabilities TEXT[],
-    pricing_model TEXT CHECK (pricing_model IN ('free', 'subscription', 'pay_per_use', 'custom')),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    owner_user_id UUID NOT NULL,
-    status TEXT NOT NULL CHECK (status IN ('draft', 'published', 'archived')),
-    quality_score FLOAT CHECK (quality_score BETWEEN 0 AND 1),
-    last_quality_check TIMESTAMPTZ
+-- SQL migration script for ACAI platform MVP
+
+-- User Table
+CREATE TABLE users (
+  id UUID PRIMARY KEY,
+  tenant_id VARCHAR(255) NOT NULL DEFAULT 'ACAI',
+  email VARCHAR(255) UNIQUE NOT NULL,
+  username VARCHAR(100) UNIQUE NOT NULL,
+  hashed_password VARCHAR(255) NOT NULL,
+  role ENUM('consumer', 'creator', 'admin') NOT NULL DEFAULT 'consumer',
+  avatar_url VARCHAR(500),
+  bio TEXT,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE
 );
 
-CREATE TABLE agent_reviews (
-    review_id UUID PRIMARY KEY,
-    agent_id UUID REFERENCES agent_listings(agent_id),
-    reviewer_user_id UUID NOT NULL,
-    rating INT CHECK (rating BETWEEN 1 AND 5),
-    review_text TEXT,
-    helpful_count INT DEFAULT 0,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    sentiment_score FLOAT CHECK (sentiment_score BETWEEN -1 AND 1),
-    is_verified_owner BOOLEAN DEFAULT FALSE
+-- Agent Table
+CREATE TABLE agents (
+  id UUID PRIMARY KEY,
+  tenant_id VARCHAR(255) NOT NULL DEFAULT 'ACAI',
+  creator_id UUID NOT NULL REFERENCES users(id),
+  name VARCHAR(200) NOT NULL,
+  slug VARCHAR(200) UNIQUE NOT NULL,
+  tagline VARCHAR(300) NOT NULL,
+  description TEXT NOT NULL,
+  price_usd DECIMAL(10, 2) NOT NULL CHECK (price_usd >= 0),
+  category_id UUID NOT NULL REFERENCES categories(id),
+  icon_url VARCHAR(500),
+  demo_video_url VARCHAR(500),
+  documentation_url VARCHAR(500),
+  api_endpoint VARCHAR(500),
+  is_published BOOLEAN NOT NULL DEFAULT FALSE,
+  is_featured BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE user_events (
-    event_id UUID PRIMARY KEY,
-    session_id UUID NOT NULL,
-    user_id UUID,
-    event_type TEXT NOT NULL,
-    agent_id UUID,
-    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    properties JSON,
-    user_agent TEXT,
-    ip_hash TEXT
+-- Category Table
+CREATE TABLE categories (
+  id UUID PRIMARY KEY,
+  tenant_id VARCHAR(255) NOT NULL DEFAULT 'ACAI',
+  name VARCHAR(100) UNIQUE NOT NULL,
+  slug VARCHAR(100) UNIQUE NOT NULL,
+  description TEXT,
+  parent_category_id UUID REFERENCES categories(id),
+  icon VARCHAR(50),
+  display_order INTEGER NOT NULL DEFAULT 0
 );
 
-CREATE TABLE user_behavior_aggregated (
-    date DATE NOT NULL,
-    agent_id UUID NOT NULL,
-    total_views INT NOT NULL,
-    unique_viewers INT NOT NULL,
-    deploy_clicks INT NOT NULL,
-    conversion_rate FLOAT CHECK (conversion_rate BETWEEN 0 AND 1),
-    avg_session_duration FLOAT,
-    PRIMARY KEY (date, agent_id)
+-- Transaction Table
+CREATE TABLE transactions (
+  id UUID PRIMARY KEY,
+  tenant_id VARCHAR(255) NOT NULL DEFAULT 'ACAI',
+  buyer_id UUID NOT NULL REFERENCES users(id),
+  agent_id UUID NOT NULL REFERENCES agents(id),
+  amount_usd DECIMAL(10, 2) NOT NULL,
+  status ENUM('pending', 'completed', 'failed', 'refunded') NOT NULL DEFAULT 'pending',
+  stripe_payment_intent_id VARCHAR(255) UNIQUE,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  completed_at TIMESTAMP
 );
 
--- Create an index on user_events for quick lookup
-CREATE INDEX idx_user_events_session ON user_events (session_id);
+-- Event Table
+CREATE TABLE events (
+  id UUID PRIMARY KEY,
+  tenant_id VARCHAR(255) NOT NULL DEFAULT 'ACAI',
+  user_id UUID REFERENCES users(id),
+  event_type VARCHAR(100) NOT NULL,
+  entity_type VARCHAR(50),
+  entity_id UUID,
+  session_id VARCHAR(255) NOT NULL,
+  page_url VARCHAR(500) NOT NULL,
+  referrer_url VARCHAR(500),
+  user_agent TEXT,
+  ip_address VARCHAR(45),
+  event_properties JSON NOT NULL DEFAULT '{}',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 
--- RLS Policies
-ALTER TABLE agent_listings ENABLE ROW LEVEL SECURITY;
-CREATE POLICY user_can_write_agent ON agent_listings
-    FOR UPDATE, DELETE USING (owner_user_id = current_setting('myapp.user_id')::UUID);
+-- Sample Data
+INSERT INTO users (id, email, username, hashed_password, role) VALUES 
+('1c4d56b1-45ae-4ec4-8a2d-4a52b0a1aa58', 'john.doe@example.com', 'john_doe', 'hashed-password-123', 'consumer');
 
-ALTER TABLE agent_reviews ENABLE ROW LEVEL SECURITY;
-CREATE POLICY user_can_write_review ON agent_reviews
-    FOR UPDATE, DELETE USING (reviewer_user_id = current_setting('myapp.user_id')::UUID);
+INSERT INTO categories (id, name, slug, display_order) VALUES 
+('2a6249c5-8ecf-4b64-afc7-797decfe7067', 'Content Creation', 'content-creation', 1);
 
--- Insert sample data
-INSERT INTO agent_listings (agent_id, name, description, category, capabilities, pricing_model, created_at, updated_at, owner_user_id, status, quality_score, last_quality_check)
-VALUES 
-('11111111-1111-1111-1111-111111111111', 'AI Image Processor', 'Processes images using AI algorithms.', 'Image Processing', ARRAY['resizing', 'filtering'], 'subscription', NOW(), NOW(), '22222222-2222-2222-2222-222222222222', 'published', 0.95, NOW());
+INSERT INTO agents (id, creator_id, name, slug, tagline, description, price_usd, category_id) VALUES 
+('3f36571f-e31b-4e5c-bd87-3d4d5566b3a4', '1c4d56b1-45ae-4ec4-8a2d-4a52b0a1aa58', 'Text Analyzer', 'text-analyzer', 'Analyze text efficiently', 'An AI tool for detailed text analysis', 49.99, '2a6249c5-8ecf-4b64-afc7-797decfe7067');
 
-INSERT INTO agent_reviews (review_id, agent_id, reviewer_user_id, rating, review_text, created_at, updated_at, sentiment_score, is_verified_owner)
-VALUES 
-('33333333-3333-3333-3333-333333333333', '11111111-1111-1111-1111-111111111111', '44444444-4444-4444-4444-444444444444', 5, 'This AI is fantastic!', NOW(), NOW(), 0.8, TRUE);
+-- RLS policies
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation_policy ON users 
+  FOR SELECT USING (tenant_id = 'ACAI');
 
-INSERT INTO user_events (event_id, session_id, user_id, event_type, agent_id, timestamp, properties, user_agent, ip_hash)
-VALUES 
-('55555555-5555-5555-5555-555555555555', '66666666-6666-6666-6666-666666666666', '44444444-4444-4444-4444-444444444444', 'view_listing', '11111111-1111-1111-1111-111111111111', NOW(), '{"detail":"viewed agent details"}', 'Mozilla/5.0', 'abcd1234');
+ALTER TABLE agents ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation_policy ON agents 
+  FOR SELECT USING (tenant_id = 'ACAI');
 
-INSERT INTO user_behavior_aggregated (date, agent_id, total_views, unique_viewers, deploy_clicks, conversion_rate, avg_session_duration)
-VALUES 
-(CURRENT_DATE, '11111111-1111-1111-1111-111111111111', 100, 80, 10, 0.1, 120.5);
+ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation_policy ON categories 
+  FOR SELECT USING (tenant_id = 'ACAI');
+
+ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation_policy ON transactions 
+  FOR SELECT USING (tenant_id = 'ACAI');
+
+ALTER TABLE events ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation_policy ON events 
+  FOR SELECT USING (tenant_id = 'ACAI');
+
+-- Indexes
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_agents_slug ON agents(slug);
+CREATE INDEX idx_categories_slug ON categories(slug);
+CREATE INDEX idx_transactions_buyer_id ON transactions(buyer_id);
+CREATE INDEX idx_events_user_id ON events(user_id);
